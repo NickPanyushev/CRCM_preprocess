@@ -53,11 +53,11 @@ rsconnect/
 *.rds
 
 # temporary files
-/temp_folder/
+/temp_folder/*
 
 # Excel files
 *.xlsx
 *.xls
 
 # folder with actual exomes
-/exomes_folder/
+/exomes_folder/*
