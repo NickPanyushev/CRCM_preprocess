@@ -1,0 +1,111 @@
+#Converting funny WES format to table
+## Point of this script - to develop a pipeline for converting WES results acrchives to tables
+```{r installing_packages, echo=F, results='hide', eval=FALSE}
+install.packages("data.table")
+install.packages("zip")
+install.packages("here")
+install.packages("vcfR")
+```
+
+```{r loading_packages, echo=F, results='hide'}
+library(data.table)
+setDTthreads(percent = 90)
+library(zip)
+library(vcfR)
+```
+
+Basically we need only to extract only oncology variants
+For that, we'll run the samples over by a script - taking 
+```{r archive readout}
+library(here)
+```
+
+Here we'll create a function which takes for 
+input - the archive names
+output - writes files to the desired folder 
+Returns nothing
+```{r vcf extracting function}
+#TODO: add tryCatch - to highlight successful and failed tasks
+#This function takes as input archive and outputs the vcf table
+#Outputs nothing - just writes files on disk
+get_vcf <- function(archive_name, extract_folder = ".", extensions = ".vcf.gz"){
+  library(zip)
+  file_list <- zip_list(archive_name)$filename
+  #Creating a pattern like"(.vcf|.tbi)$"
+  pattern <- paste0("(", paste(extensions, collapse = "|"), ")$")
+  filename <- file_list[grepl(pattern, file_list, perl = T)]
+  unzip(archive_name, exdir = extract_folder, files = filename, junkpaths = T)
+  return(invisible(NULL))
+}
+```
+
+Now let's do that for several files
+```{r collecting vcfs}
+#collected file names of the archives
+PDAC_results <- dir(path="/home/nikolai/PDX_Exome_results/",
+                    pattern = "^PDAC.*T\\.zip$",
+                    full.names = TRUE)
+
+#applying our magical function to these file names
+invisible(sapply(PDAC_results, get_vcf, extract_folder = "./exomes_folder"))
+```
+
+This is task-specific chunk, we do not need germline variants in this exact study, so we can delete those files
+```{r removing genetic variants vcfs}
+#removing unused vcfs, which we are not interested in
+system("rm ./exomes_folder/*_Genetic_Variants.*")
+```
+
+```{r renaming_files, engine='bash'}
+cd exomes_folder
+for i in *.vcf.gz
+do
+  TAG=${i%-N_*}".vcf.gz"
+  mv $i $TAG
+done
+```
+
+```{r reheader_split, engine='bash', eval=T}
+cd exomes_folder
+for i in *.vcf.gz 
+do
+  TAG=${i%.vcf.gz}
+  echo $TAG"_TUMOR" > $TAG"_new_names".txt
+  echo $TAG"_NORMAL" >> $TAG"_new_names".txt
+  bcftools reheader -s $TAG"_new_names".txt $i | bcftools +split-vep -a ANN -c - -Oz -o ${TAG}_VEP_split.vcf.gz -
+  rm $i $TAG"_new_names".txt
+done
+echo "Success"
+```
+
+This chunk reads vcfs as tables with vcfR 
+This chink runs for about an hour for the ~70 vcf files
+```{r merging vcf2tables, eval=FALSE}
+vcfs <-  dir(path = "./exomes_folder/", pattern = "*.vcf.gz", full.names = T)
+
+#Producing the table for reference of field names
+vcf <- read.vcfR("exomes_folder/PDAC_JIA_HS_003N_VEP_split.vcf.gz")
+reference_table <- vcfR2tidy(vcf, single_frame = T)$meta 
+rm(vcf)
+
+vcf2table <- function(filename){
+tmp <- read.vcfR(filename)
+variant_table <- vcfR2tidy(tmp, single_frame = T)$dat
+return(variant_table)
+}
+
+all_tables <- lapply(vcfs, vcf2table) #the longest step! 
+final_table <- rbindlist(all_tables)
+rm(all_tables)
+invisible(gc())
+```
+
+Writing the results to the disk
+
+```{r merging vcf2tables, eval=FALSE}
+saveRDS(final_table, file = "exomes_folder/final_table.RDS")
+fwrite(final_table, file = "exomes_folder/raw_vcfs.tsv.gz", sep = "\t", compress = "gzip") #saving this on disk, just to be sure
+fwrite(reference_table, file = "exomes_folder/field_explanation.tsv", sep = "\t")
+file.remove(vcfs) #removed all the vcfs in order not to clog the disk
+rm(vcfs, PDAC_results)
+```

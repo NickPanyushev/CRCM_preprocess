@@ -1,0 +1,202 @@
+##This is the second Rmd of the PDAC exomes screen  
+##First is the VCF2table_conversion.Rmd
+
+```{r installing_packages, echo=F, results='hide', eval=FALSE}
+install.packages("data.table")
+install.packages("here")
+```
+
+```{r loading_packages, echo=F, results='hide'}
+library(data.table)
+setDTthreads(percent = 90)
+library(tidyr)
+library(here)
+```
+
+```{r loading the table into memory}
+reference_table <- fread(input = "exomes_folder/field_explanation.tsv")
+final_table <- readRDS("exomes_folder/final_table.RDS") #prefer this method
+#final_table <- fread(input = "exomes_folder/raw_vcfs.tsv.gz") #use this, if RDS is corrupted, for example
+
+```
+
+```{r coercing gene symbol column to the list format}
+final_table$SYMBOL <- vapply(final_table$SYMBOL, function(x) strsplit(as.character(x), ","), FUN.VALUE = list(character(1)))
+```
+
+Creating a small test table
+```{r small test table creation}
+test_table <- final_table[sample(.N, 100000)]
+```
+
+```{r gene_filtering}
+#Reading out the list of the genes of the interest
+genes_of_interest <- fread(input = "Panel_TSV8.csv")
+genes_of_interest <- unique(genes_of_interest$`V8 panel`)
+
+filtered_table <- final_table[vapply(final_table$SYMBOL, function(x) any(x %in% genes_of_interest), logical(1))]
+filtered_table <- tidyr::unnest(filtered_table, cols = (SYMBOL))
+setDT(filtered_table)
+filtered_table <- filtered_table[SYMBOL %in% genes_of_interest]
+
+#rm(final_table) #removing the huge table and freeing the memory
+gc()
+```
+
+##Selecting columns of interest - not run, because I need to discuss it with Nelson
+
+```{r selecting fields, eval=FALSE}
+#Reading out the table to make the final table looking alike
+fields_of_interest <- fread(input = "Result_specimen_PDAC_230629.csv", nrows = 1)
+fields_of_interest <- toupper(names(fields_of_interest))
+
+#Making variable fields_to_take - to be able to select only these fields
+fields_to_take <- names(filtered_table)[names(filtered_table) %in% fields_of_interest]
+
+fields_of_interest <- fields_of_interest[!(fields_of_interest %in% fields_to_take)]
+
+fields_to_take <- c(fields_to_take, "QUAL")
+fields_of_interest <- fields_of_interest[fields_of_interest != "QUALITY"]
+
+
+name_matches <- sapply(fields_of_interest, function(field) {
+  agrep(field, names(filtered_table), value = TRUE, ignore.case = TRUE)
+})
+
+fields_to_extract <- c("CHROM", "QUAL", "FILTER", "AF", "gt_DP", "ANN", "SYMBOL", "Consequence", "Amino_acids", "HGVSp",
+                       "cosmic", "clinvar", "SIFT", "PolyPhen", "Consequence", "gt_AD", "gt_ALT_F1R2", "gt_ALT_F2R1",
+                       "gt_REF_F1R2", "gt_REF_F2R1", "HGVSc", "cDNA_position", "EXON", "Protein_position")
+
+# Extract the relevant columns
+setDT(filtered_table)
+pruned_table <- filtered_table[, ..fields_to_extract]
+
+```
+
+#Now let's produce the small table consisting of only 3 genes and TUMOR samples
+
+```{r KRAS_TP53_SMAD4 check}
+oncomarkers <- filtered_table[vapply(filtered_table$SYMBOL, function(x) any(x %in% c("KRAS", "TP53", "SMAD4")), logical(1))]
+oncomarkers <- oncomarkers[grepl("TUMOR", Indiv), .(CHROM, POS, REF, ALT, FILTER, ID, SYMBOL, Indiv, Amino_acids, HGVSp, Codons, Consequence, SIFT, ANN)]
+```
+
+```{r unnesting_table, eval=FALSE}
+#Not working right now
+#Converting all the things from the csv to lists
+oncomarkers <- oncomarkers[, lapply(.SD, function(x) strsplit(as.character(x), ","))]
+
+#Unnesting it
+oncomarkers_tmp <- as.data.frame(oncomarkers)
+oncomarkers_unnested <- oncomarkers_tmp %>% 
+  tidyr::unnest(cols = everything())
+setDT(oncomarkers_unnested)
+```
+
+Making the summary table to draw out conclusions about the data quality
+Sample | Gene number | Percent_PASS | Total var number | Perc_PASS_genes_of_interest 
+```{r sum_table_generation}
+#At first, taking the data from the big table (with all the variations)
+#Rejecting all the unnecessary fields
+sum_table <- final_table[, .(Indiv, CHROM, POS, FILTER, SYMBOL)]
+
+#No need to split this field once more, because it's already a list column
+#sum_table$SYMBOL <- vapply(sum_table$SYMBOL, function(x) strsplit(as.character(x), ","), FUN.VALUE = list(character(1)))
+sum_table <- sum_table[, Gene_number := length(unique(unlist(SYMBOL))), by = Indiv ]
+sum_table$SYMBOL <- NULL
+
+#Counting the percentage of mutations passing the filter
+perc_pass <- sum_table[FILTER == "PASS", passed := .N, by = Indiv]
+perc_pass <- sum_table[, total := .N, by = Indiv]
+perc_pass$Percent_PASS <- perc_pass$passed/perc_pass$total
+perc_pass$Percent_PASS <- perc_pass$Percent_PASS*100
+
+#Removing the repeating rows and NA's
+perc_pass <- unique(perc_pass[, .(Indiv, total, Percent_PASS, Gene_number)])
+perc_pass <- perc_pass[complete.cases(perc_pass)]
+
+#Performing the same for the filtered table with genes of interest
+#Removing extra columns
+perc_pass_selected <- filtered_table[, .(Indiv, FILTER, SYMBOL)]
+
+#Counting the ratio of the PASS mutations
+perc_pass_selected <- perc_pass_selected[FILTER == "PASS", passed := .N, by = Indiv]
+perc_pass_selected <- perc_pass_selected[, total := .N, by = Indiv]
+perc_pass_selected$Percent_PASS_gene_list <- perc_pass_selected$passed/perc_pass_selected$total*100
+
+#Counting number of genes
+perc_pass_selected <- perc_pass_selected[, Gene_number_list := length(unique(SYMBOL)), by = Indiv ]
+
+perc_pass_selected <- perc_pass_selected[, .(Indiv, Percent_PASS_gene_list, Gene_number_list)]
+perc_pass_selected <- unique(perc_pass_selected[, .(Indiv, Percent_PASS_gene_list, Gene_number_list)])
+perc_pass_selected <- perc_pass_selected[complete.cases(perc_pass_selected)]
+
+#Merging tables to obtain Sample-wise statistics
+perc_pass <- merge(perc_pass, perc_pass_selected)
+perc_pass$Percent_PASS <- round(perc_pass$Percent_PASS, digits = 2)
+perc_pass$Percent_PASS_gene_list <- round(perc_pass$Percent_PASS_gene_list, digits = 2)
+rm(sum_table, perc_pass_selected)
+fwrite(perc_pass, file = "table_to_discuss.tsv", sep = "\t")
+```
+
+```{r table_for_julie}
+table_for_julie <- filtered_table[vapply(filtered_table$SYMBOL, function(x) any(x %in% c("KRAS")), logical(1)), 
+               .(CHROM, POS, ID, Indiv, FILTER, HGVSp, SYMBOL)]
+
+#Unnesting this table to be able to look at it in excel
+
+table_for_julie$HGVSp <- vapply(table_for_julie$HGVSp, function(x) strsplit(as.character(x), ","), FUN.VALUE = list(character(1)))
+table_for_julie <- tidyr::unnest(table_for_julie, cols = c(SYMBOL))
+table_for_julie <- tidyr::unnest(table_for_julie, cols = c(HGVSp))
+setDT(table_for_julie)
+
+table_for_julie <- table_for_julie[SYMBOL == "KRAS"]
+table_for_julie$Protein <- table_for_julie$HGVSp
+table_for_julie$Protein <-  sub(":p\\..*", "", table_for_julie$Protein)
+
+table_for_julie$HGVSp <- sub(".*:p\\.", "", table_for_julie$HGVSp)
+
+table_for_julie <- unique(table_for_julie)
+fwrite(table_for_julie, file = "KRAS_table.tsv", sep = "\t")
+
+unique(table_for_julie$Indiv)
+
+fwrite(unique(table_for_julie[, .(Indiv)]), file = "Samples_list.txt", col.names = F)
+```
+Now making the output table for Nelson, looking just like 
+SAMPLE | Gene_symbol | Protein_mutation |  
+```{r output_table}
+
+output_table <- filtered_table[FILTER == "PASS", 
+               .(CHROM, POS, ID, Indiv, FILTER, HGVSp, SYMBOL)]
+
+output_table$HGVSp <- vapply(output_table$HGVSp, function(x) strsplit(as.character(x), ","), FUN.VALUE = list(character(1)))
+
+output_table <- tidyr::unnest(output_table, cols = HGVSp)
+output_table <- unique(output_table)
+setDT(output_table)
+output_table <- output_table[grepl("_TUMOR", Indiv)]
+output_table$Prot_product <- output_table$HGVSp
+output_table$Prot_product <-  sub(":p\\..*", "", output_table$Prot_product)
+output_table$HGVSp <- sub(".*:p\\.", "", output_table$HGVSp)
+output_table$HGVSp <- sub("%3D", "=", output_table$HGVSp)
+
+#Fixing sample names
+output_table$Indiv <- sub("Sample", "", output_table$Indiv)
+output_table$Indiv <- sub("_TUMOR", "", output_table$Indiv)
+output_table$Indiv <- gsub("_", "", output_table$Indiv, )
+output_table$Indiv <- sub("N", "", output_table$Indiv)
+output_table$Indiv <- sub("JIAHS", "", output_table$Indiv)
+output_table$Indiv <- sub("DNA", "", output_table$Indiv)
+output_table$Indiv <- paste(output_table$Indiv, "T", sep = "")
+output_table <- unique(output_table)
+
+setnames(output_table, c("Indiv", "SYMBOL", "HGVSp"), c("Sample", "symbol", "prot_keep"))
+
+fwrite(output_table, "all_genes_fixed.tsv", sep = "\t")
+
+fwrite(output_table[symbol %in% c("KRAS", "TP53", "SMAD4", "BRCA1", "BRCA2")], "KRAS_TP53_SMAD4_BRAC_genes_fixed.tsv", sep = "\t")
+```
+
+  
+
+

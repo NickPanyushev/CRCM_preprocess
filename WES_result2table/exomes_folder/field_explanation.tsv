@@ -1,0 +1,170 @@
+Tag	ID	Number	Type	Description
+INFO	DB	0	Flag	dbSNP Membership
+INFO	ECNT	1	String	Number of events in this haplotype
+INFO	HCNT	1	String	Number of haplotypes that support this variant
+INFO	MAD_LEFT_OFFSET	1	Float	Median absolute deviation of medians of the number of bases between the left end of the tumor read and the variant
+INFO	MAD_RIGHT_OFFSET	1	Float	Median absolute deviation of medians of the number of bases between the variant and the right end of the tumor read
+INFO	MAX_ED	1	Integer	Maximum distance between events in this active region
+INFO	MEDIAN_LEFT_OFFSET	1	Float	Median of the number of bases between the left end of the tumor read and the variant
+INFO	MEDIAN_RIGHT_OFFSET	1	Float	Median of the number of bases between the variant and the right end of the tumor read
+INFO	MIN_ED	1	Integer	Minimum distance between events in this active region
+INFO	NLOD	1	String	Normal LOD score
+INFO	PON	1	String	Count from Panel of Normals
+INFO	RPA	.	Integer	Number of times tandem repeat unit is repeated, for each allele (including reference)
+INFO	RU	1	String	Tandem repeat unit (bases)
+INFO	STR	0	Flag	Variant is a short tandem repeat
+INFO	TLOD	1	String	Tumor LOD score
+INFO	TLOD_FWD	1	Float	TLOD from forward reads only
+INFO	TLOD_REV	1	Float	TLOD from reverse reads only
+INFO	TUMOR_SB_POWER_FWD	1	Float	Strand bias power for forward reads
+INFO	TUMOR_SB_POWER_REV	1	Float	Stand bias power for reverse reads
+INFO	ANN	.	String	Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|Existing_variation|DISTANCE|STRAND|FLAGS|VARIANT_CLASS|SYMBOL_SOURCE|HGNC_ID|CANONICAL|MANE|TSL|APPRIS|CCDS|ENSP|SWISSPROT|TREMBL|UNIPARC|REFSEQ_MATCH|REFSEQ_OFFSET|SOURCE|GENE_PHENO|SIFT|PolyPhen|DOMAINS|miRNA|HGVS_OFFSET|HGVSg|AF|AFR_AF|AMR_AF|EAS_AF|EUR_AF|SAS_AF|AA_AF|EA_AF|gnomAD_AF|gnomAD_AFR_AF|gnomAD_AMR_AF|gnomAD_ASJ_AF|gnomAD_EAS_AF|gnomAD_FIN_AF|gnomAD_NFE_AF|gnomAD_OTH_AF|gnomAD_SAS_AF|MAX_AF|MAX_AF_POPS|CLIN_SIG|SOMATIC|PHENO|PUBMED|VAR_SYNONYMS|MOTIF_NAME|MOTIF_POS|HIGH_INF_POS|MOTIF_SCORE_CHANGE|TRANSCRIPTION_FACTORS|MaxEntScan_alt|MaxEntScan_diff|MaxEntScan_ref|ada_score|rf_score|GERP++_RS|Interpro_domain|LRT_pred|M-CAP_pred|MetaLR_pred|MetaSVM_pred|MutationAssessor_pred|MutationTaster_pred|MutationTaster_score|PROVEAN_score|DisGeNET_PMID|DisGeNET_SCORE|DisGeNET_disease|EVS|EVS_MAF|EVS_CA|mir_ACC|clinvar|clinvar_CLNSIG|clinvar_CLNDN|clinvar_ORIGIN|clinvar_CLNDISDB|IG|IG_AF|IG_RNA|IG_RNA_AF_RNA|Kaviar|Kaviar_AF|cosmic|cosmic_FATHMM|cosmic_LEGACY_ID|PhyloP|PhastCons|GnomAD_Genome|GnomAD_Genome_AF|GnomAD_Genome_AF_afr|GnomAD_Genome_AF_amr|GnomAD_Genome_AF_asj|GnomAD_Genome_AF_eas|GnomAD_Genome_AF_fin|GnomAD_Genome_AF_nfe|GnomAD_Genome_AF_oth|GnomAD_Genome_AF_sas|GnomAD_Genome_AF_popmax|FATHMM|FATHMM_NCS|FATHMM_NCG|FATHMM_CS|FATHMM_CG|DANN|DANN_Score|CIViC_Variant|CIViC_Variant_Clinical_Information|CIViC_Region_Clinical_Information|Chasmplus|Chasmplus_CHASMPLUS_TTYPE|GnomAD_MNV|GnomAD_MNV_AF
+INFO	EVS	.	String	/ref-files/Human_hg38/AnnotFiles/EVS/ESP6500SI-V2-SSA137.GRCh38-liftover.snps_indels.vcf.gz (exact)
+INFO	EVS_MAF	.	String	MAF field from /ref-files/Human_hg38/AnnotFiles/EVS/ESP6500SI-V2-SSA137.GRCh38-liftover.snps_indels.vcf.gz
+INFO	EVS_CA	.	String	CA field from /ref-files/Human_hg38/AnnotFiles/EVS/ESP6500SI-V2-SSA137.GRCh38-liftover.snps_indels.vcf.gz
+INFO	mir_ACC	.	String	/ref-files/Human_hg38/AnnotFiles/MirBase/mirbase_hsa_v22_GRCh38.bed.gz (overlap)
+INFO	clinvar	.	String	/ref-files/Human_hg38/AnnotFiles/Clinvar/clinvar_20201010.vcf.gz (exact)
+INFO	clinvar_CLNSIG	.	String	CLNSIG field from /ref-files/Human_hg38/AnnotFiles/Clinvar/clinvar_20201010.vcf.gz
+INFO	clinvar_CLNDN	.	String	CLNDN field from /ref-files/Human_hg38/AnnotFiles/Clinvar/clinvar_20201010.vcf.gz
+INFO	clinvar_ORIGIN	.	String	ORIGIN field from /ref-files/Human_hg38/AnnotFiles/Clinvar/clinvar_20201010.vcf.gz
+INFO	clinvar_CLNDISDB	.	String	CLNDISDB field from /ref-files/Human_hg38/AnnotFiles/Clinvar/clinvar_20201010.vcf.gz
+INFO	IG	.	String	/ref-files/Human_hg38/AnnotFiles/FreqIG/Freq-IG_19-10-2018.vcf.gz (exact)
+INFO	IG_AF	.	String	AF field from /ref-files/Human_hg38/AnnotFiles/FreqIG/Freq-IG_19-10-2018.vcf.gz
+INFO	IG_RNA	.	String	/ref-files/Human_hg38/AnnotFiles/FreqIG/Frequence_IG_RNA_06-11-2020.vcf.gz (exact)
+INFO	IG_RNA_AF_RNA	.	String	AF_RNA field from /ref-files/Human_hg38/AnnotFiles/FreqIG/Frequence_IG_RNA_06-11-2020.vcf.gz
+INFO	Kaviar	.	String	/ref-files/Human_hg38/AnnotFiles/Kaviar/Kaviar-160204-Public-hg38-trim.vcf.gz (exact)
+INFO	Kaviar_AF	.	String	AF field from /ref-files/Human_hg38/AnnotFiles/Kaviar/Kaviar-160204-Public-hg38-trim.vcf.gz
+INFO	cosmic	.	String	/ref-files/Human_hg38/AnnotFiles/Cosmic/V91/CosmicCodingMuts_V2.vcf.gz (exact)
+INFO	cosmic_FATHMM	.	String	FATHMM field from /ref-files/Human_hg38/AnnotFiles/Cosmic/V91/CosmicCodingMuts_V2.vcf.gz
+INFO	cosmic_LEGACY_ID	.	String	LEGACY_ID field from /ref-files/Human_hg38/AnnotFiles/Cosmic/V91/CosmicCodingMuts_V2.vcf.gz
+INFO	PhyloP	.	String	/ref-files/Human_hg38/AnnotFiles/PhyloP//hg38.phyloP100way.bw (exact)
+INFO	PhastCons	.	String	/ref-files/Human_hg38/AnnotFiles/PhastCons/hg38.phastCons100way.bw (exact)
+INFO	GnomAD_Genome	.	String	/ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz (exact)
+INFO	GnomAD_Genome_AF	.	String	AF field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_afr	.	String	AF_afr field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_amr	.	String	AF_amr field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_asj	.	String	AF_asj field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_eas	.	String	AF_eas field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_fin	.	String	AF_fin field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_nfe	.	String	AF_nfe field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_oth	.	String	AF_oth field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_sas	.	String	AF_sas field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	GnomAD_Genome_AF_popmax	.	String	AF_popmax field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad.genomes.r3.0.sites.vcf.gz
+INFO	FATHMM	.	String	/ref-files/Human_hg38/AnnotFiles/FATHMM/fathmm-MKL_Current.hg38.vcf.gz (exact)
+INFO	FATHMM_NCS	.	String	NCS field from /ref-files/Human_hg38/AnnotFiles/FATHMM/fathmm-MKL_Current.hg38.vcf.gz
+INFO	FATHMM_NCG	.	String	NCG field from /ref-files/Human_hg38/AnnotFiles/FATHMM/fathmm-MKL_Current.hg38.vcf.gz
+INFO	FATHMM_CS	.	String	CS field from /ref-files/Human_hg38/AnnotFiles/FATHMM/fathmm-MKL_Current.hg38.vcf.gz
+INFO	FATHMM_CG	.	String	CG field from /ref-files/Human_hg38/AnnotFiles/FATHMM/fathmm-MKL_Current.hg38.vcf.gz
+INFO	DANN	.	String	/ref-files/Human_hg38/AnnotFiles/DANN/DANN_whole_genome_SNVs.hg38.vcf.gz (exact)
+INFO	DANN_Score	.	String	Score field from /ref-files/Human_hg38/AnnotFiles/DANN/DANN_whole_genome_SNVs.hg38.vcf.gz
+INFO	CIViC_Variant	.	String	/nfs/tasks/annotation-pdac-jia-hs-003n-n-pdac-jia-hs-003t-t.vep-r-6b7e465e/inputs/01-Mar-2021-ClinicalEvidenceSummaries-groups.hg38.vcf.gz (exact)
+INFO	CIViC_Variant_Clinical_Information	.	String	Clinical_Information field from /nfs/tasks/annotation-pdac-jia-hs-003n-n-pdac-jia-hs-003t-t.vep-r-6b7e465e/inputs/01-Mar-2021-ClinicalEvidenceSummaries-groups.hg38.vcf.gz
+INFO	CIViC_Region_Clinical_Information	.	String	/nfs/tasks/annotation-pdac-jia-hs-003n-n-pdac-jia-hs-003t-t.vep-r-6b7e465e/inputs/01-Mar-2021-ClinicalEvidenceSummaries-groups_regions.hg38.bed.gz (overlap)
+INFO	Chasmplus	.	String	/ref-files/Human_hg38/AnnotFiles/Chasmplus/chasmplus.vcf.gz (exact)
+INFO	Chasmplus_CHASMPLUS_TTYPE	.	String	CHASMPLUS_TTYPE field from /ref-files/Human_hg38/AnnotFiles/Chasmplus/chasmplus.vcf.gz
+INFO	GnomAD_MNV	.	String	/ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad_hg38_mnv_coding.vcf.gz (exact)
+INFO	GnomAD_MNV_AF	.	String	AF field from /ref-files/Human_hg38/AnnotFiles/GnomAD/gnomad_hg38_mnv_coding.vcf.gz
+INFO	Allele	.	String	The Allele field from INFO/ANN
+INFO	Consequence	.	String	The Consequence field from INFO/ANN
+INFO	IMPACT	.	String	The IMPACT field from INFO/ANN
+INFO	SYMBOL	.	String	The SYMBOL field from INFO/ANN
+INFO	Gene	.	String	The Gene field from INFO/ANN
+INFO	Feature_type	.	String	The Feature_type field from INFO/ANN
+INFO	Feature	.	String	The Feature field from INFO/ANN
+INFO	BIOTYPE	.	String	The BIOTYPE field from INFO/ANN
+INFO	EXON	.	String	The EXON field from INFO/ANN
+INFO	INTRON	.	String	The INTRON field from INFO/ANN
+INFO	HGVSc	.	String	The HGVSc field from INFO/ANN
+INFO	HGVSp	.	String	The HGVSp field from INFO/ANN
+INFO	cDNA_position	.	Integer	The cDNA_position field from INFO/ANN
+INFO	CDS_position	.	Integer	The CDS_position field from INFO/ANN
+INFO	Protein_position	.	Integer	The Protein_position field from INFO/ANN
+INFO	Amino_acids	.	String	The Amino_acids field from INFO/ANN
+INFO	Codons	.	String	The Codons field from INFO/ANN
+INFO	Existing_variation	.	String	The Existing_variation field from INFO/ANN
+INFO	DISTANCE	.	Integer	The DISTANCE field from INFO/ANN
+INFO	STRAND	.	Integer	The STRAND field from INFO/ANN
+INFO	FLAGS	.	String	The FLAGS field from INFO/ANN
+INFO	VARIANT_CLASS	.	String	The VARIANT_CLASS field from INFO/ANN
+INFO	SYMBOL_SOURCE	.	String	The SYMBOL_SOURCE field from INFO/ANN
+INFO	HGNC_ID	.	String	The HGNC_ID field from INFO/ANN
+INFO	CANONICAL	.	String	The CANONICAL field from INFO/ANN
+INFO	MANE	.	String	The MANE field from INFO/ANN
+INFO	TSL	.	Integer	The TSL field from INFO/ANN
+INFO	APPRIS	.	String	The APPRIS field from INFO/ANN
+INFO	CCDS	.	String	The CCDS field from INFO/ANN
+INFO	ENSP	.	String	The ENSP field from INFO/ANN
+INFO	SWISSPROT	.	String	The SWISSPROT field from INFO/ANN
+INFO	TREMBL	.	String	The TREMBL field from INFO/ANN
+INFO	UNIPARC	.	String	The UNIPARC field from INFO/ANN
+INFO	REFSEQ_MATCH	.	String	The REFSEQ_MATCH field from INFO/ANN
+INFO	REFSEQ_OFFSET	.	String	The REFSEQ_OFFSET field from INFO/ANN
+INFO	SOURCE	.	String	The SOURCE field from INFO/ANN
+INFO	GENE_PHENO	.	Integer	The GENE_PHENO field from INFO/ANN
+INFO	SIFT	.	String	The SIFT field from INFO/ANN
+INFO	PolyPhen	.	String	The PolyPhen field from INFO/ANN
+INFO	DOMAINS	.	String	The DOMAINS field from INFO/ANN
+INFO	miRNA	.	String	The miRNA field from INFO/ANN
+INFO	HGVS_OFFSET	.	Integer	The HGVS_OFFSET field from INFO/ANN
+INFO	HGVSg	.	String	The HGVSg field from INFO/ANN
+INFO	AF	.	Float	The AF field from INFO/ANN
+INFO	AFR_AF	.	Float	The AFR_AF field from INFO/ANN
+INFO	AMR_AF	.	Float	The AMR_AF field from INFO/ANN
+INFO	EAS_AF	.	Float	The EAS_AF field from INFO/ANN
+INFO	EUR_AF	.	Float	The EUR_AF field from INFO/ANN
+INFO	SAS_AF	.	Float	The SAS_AF field from INFO/ANN
+INFO	AA_AF	.	Float	The AA_AF field from INFO/ANN
+INFO	EA_AF	.	Float	The EA_AF field from INFO/ANN
+INFO	gnomAD_AF	.	Float	The gnomAD_AF field from INFO/ANN
+INFO	gnomAD_AFR_AF	.	Float	The gnomAD_AFR_AF field from INFO/ANN
+INFO	gnomAD_AMR_AF	.	Float	The gnomAD_AMR_AF field from INFO/ANN
+INFO	gnomAD_ASJ_AF	.	Float	The gnomAD_ASJ_AF field from INFO/ANN
+INFO	gnomAD_EAS_AF	.	Float	The gnomAD_EAS_AF field from INFO/ANN
+INFO	gnomAD_FIN_AF	.	Float	The gnomAD_FIN_AF field from INFO/ANN
+INFO	gnomAD_NFE_AF	.	Float	The gnomAD_NFE_AF field from INFO/ANN
+INFO	gnomAD_OTH_AF	.	Float	The gnomAD_OTH_AF field from INFO/ANN
+INFO	gnomAD_SAS_AF	.	Float	The gnomAD_SAS_AF field from INFO/ANN
+INFO	MAX_AF	.	Float	The MAX_AF field from INFO/ANN
+INFO	MAX_AF_POPS	.	Float	The MAX_AF_POPS field from INFO/ANN
+INFO	CLIN_SIG	.	String	The CLIN_SIG field from INFO/ANN
+INFO	SOMATIC	.	String	The SOMATIC field from INFO/ANN
+INFO	PHENO	.	String	The PHENO field from INFO/ANN
+INFO	PUBMED	.	String	The PUBMED field from INFO/ANN
+INFO	VAR_SYNONYMS	.	String	The VAR_SYNONYMS field from INFO/ANN
+INFO	MOTIF_NAME	.	String	The MOTIF_NAME field from INFO/ANN
+INFO	MOTIF_POS	.	Integer	The MOTIF_POS field from INFO/ANN
+INFO	HIGH_INF_POS	.	String	The HIGH_INF_POS field from INFO/ANN
+INFO	MOTIF_SCORE_CHANGE	.	Float	The MOTIF_SCORE_CHANGE field from INFO/ANN
+INFO	TRANSCRIPTION_FACTORS	.	String	The TRANSCRIPTION_FACTORS field from INFO/ANN
+INFO	MaxEntScan_alt	.	String	The MaxEntScan_alt field from INFO/ANN
+INFO	MaxEntScan_diff	.	String	The MaxEntScan_diff field from INFO/ANN
+INFO	MaxEntScan_ref	.	String	The MaxEntScan_ref field from INFO/ANN
+INFO	ada_score	.	String	The ada_score field from INFO/ANN
+INFO	rf_score	.	String	The rf_score field from INFO/ANN
+INFO	GERP++_RS	.	String	The GERP++_RS field from INFO/ANN
+INFO	Interpro_domain	.	String	The Interpro_domain field from INFO/ANN
+INFO	LRT_pred	.	String	The LRT_pred field from INFO/ANN
+INFO	M-CAP_pred	.	String	The M-CAP_pred field from INFO/ANN
+INFO	MetaLR_pred	.	String	The MetaLR_pred field from INFO/ANN
+INFO	MetaSVM_pred	.	String	The MetaSVM_pred field from INFO/ANN
+INFO	MutationAssessor_pred	.	String	The MutationAssessor_pred field from INFO/ANN
+INFO	MutationTaster_pred	.	String	The MutationTaster_pred field from INFO/ANN
+INFO	MutationTaster_score	.	String	The MutationTaster_score field from INFO/ANN
+INFO	PROVEAN_score	.	String	The PROVEAN_score field from INFO/ANN
+INFO	DisGeNET_PMID	.	String	The DisGeNET_PMID field from INFO/ANN
+INFO	DisGeNET_SCORE	.	String	The DisGeNET_SCORE field from INFO/ANN
+INFO	DisGeNET_disease	.	String	The DisGeNET_disease field from INFO/ANN
+FORMAT	gt_AD	R	Integer	Allelic depths for the ref and alt alleles in the order listed
+FORMAT	gt_AF	1	Float	Allele fraction of the event in the tumor
+FORMAT	gt_ALT_F1R2	1	Integer	Count of reads in F1R2 pair orientation supporting the alternate allele
+FORMAT	gt_ALT_F2R1	1	Integer	Count of reads in F2R1 pair orientation supporting the alternate allele
+FORMAT	gt_DP	1	Integer	255 or with bad mates are filtered)
+FORMAT	gt_FOXOG	1	Float	Fraction of alt reads indicating OxoG error
+FORMAT	gt_GQ	1	Integer	Genotype Quality
+FORMAT	gt_GT	1	String	Genotype
+FORMAT	gt_PGT	1	String	Physical phasing haplotype information, describing how the alternate alleles are phased in relation to one another
+FORMAT	gt_PID	1	String	Physical phasing ID information, where each unique ID within a given sample (but not across samples) connects records within a phasing group
+FORMAT	gt_PL	G	Integer	Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification
+FORMAT	gt_QSS	A	Integer	Sum of base quality scores for each allele
+FORMAT	gt_REF_F1R2	1	Integer	Count of reads in F1R2 pair orientation supporting the reference allele
+FORMAT	gt_REF_F2R1	1	Integer	Count of reads in F2R1 pair orientation supporting the reference allele

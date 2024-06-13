@@ -47,3 +47,17 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# R stored variables
+*.RDS
+*.rds
+
+# temporary files
+/temp_folder/
+
+# Excel files
+*.xlsx
+*.xls
+
+# folder with actual exomes
+/exomes_folder/
