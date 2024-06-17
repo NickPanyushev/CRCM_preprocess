@@ -158,23 +158,32 @@ table_for_julie$HGVSp <- sub(".*:p\\.", "", table_for_julie$HGVSp)
 table_for_julie <- unique(table_for_julie)
 fwrite(table_for_julie, file = "KRAS_table.tsv", sep = "\t")
 
-unique(table_for_julie$Indiv)
-
 fwrite(unique(table_for_julie[, .(Indiv)]), file = "Samples_list.txt", col.names = F)
 ```
-Now making the output table for Nelson, looking just like 
-SAMPLE | Gene_symbol | Protein_mutation |  
-```{r output_table}
 
+Here let's try to get Mutations for Nelson. I need to prune out the mutations with no (known) impact for cancer. 
+In this chunk I'll do it by looking at the COSMIC db and selecting only the primary transcript
+```{r TUMOR_important_mutations}
 output_table <- filtered_table[FILTER == "PASS", 
-               .(CHROM, POS, ID, Indiv, FILTER, HGVSp, SYMBOL)]
+               .(CHROM, POS, ID, Indiv, HGVSp, SYMBOL, cosmic, cosmic_FATHMM, Consequence, IMPACT, CANONICAL)]
 
-output_table$HGVSp <- vapply(output_table$HGVSp, function(x) strsplit(as.character(x), ","), FUN.VALUE = list(character(1)))
-
-output_table <- tidyr::unnest(output_table, cols = HGVSp)
-output_table <- unique(output_table)
-setDT(output_table)
 output_table <- output_table[grepl("_TUMOR", Indiv)]
+
+#Split by comma into multiple rows
+output_table <- tidyr::separate_longer_delim(output_table, cols = c(HGVSp, cosmic, cosmic_FATHMM, Consequence, IMPACT, CANONICAL), delim = ",")
+output_table <- unique(output_table)
+
+#coercing to logical type
+output_table$CANONICAL <- ifelse(output_table$CANONICAL == "YES", TRUE, FALSE) 
+
+#Now we want for every chrom+pos+symbol leave only CANONICAL mutations. 
+#If there are none, leave all
+setDT(output_table)
+output_table <- output_table[, if (any(CANONICAL)) .SD[CANONICAL] else .SD, by = .(CHROM, POS, SYMBOL)]
+#Removing this redundant column
+output_table$CANONICAL <- NULL
+
+#Parsing Protein names
 output_table$Prot_product <- output_table$HGVSp
 output_table$Prot_product <-  sub(":p\\..*", "", output_table$Prot_product)
 output_table$HGVSp <- sub(".*:p\\.", "", output_table$HGVSp)
@@ -190,12 +199,36 @@ output_table$Indiv <- sub("DNA", "", output_table$Indiv)
 output_table$Indiv <- paste(output_table$Indiv, "T", sep = "")
 output_table <- unique(output_table)
 
-setnames(output_table, c("Indiv", "SYMBOL", "HGVSp"), c("Sample", "symbol", "prot_keep"))
+#Removing irrelevant mutations
+output_table <- output_table[!(IMPACT %in% c("MODIFIER", "LOW") & cosmic == "." & HGVSp == ".")]
+output_table <- output_table[!(IMPACT %in% c("MODIFIER", "LOW") & cosmic_FATHMM == "NEUTRAL" & HGVSp == ".")]
+output_table <- output_table[Consequence != "synonymous_variant"]
+unique(output_table)
 
-fwrite(output_table, "all_genes_fixed.tsv", sep = "\t")
+#Coercing cosmic_IDs to remove duplicates
+output_table$cosmic <- sapply(output_table$cosmic, function(x) unique(unlist(strsplit(x, "&"))))
+output_table$cosmic_FATHMM <- sapply(output_table$cosmic_FATHMM, function(x) unique(unlist(strsplit(x, "&"))))
 
-fwrite(output_table[symbol %in% c("KRAS", "TP53", "SMAD4", "BRCA1", "BRCA2")], "KRAS_TP53_SMAD4_BRAC_genes_fixed.tsv", sep = "\t")
+#Nesting Prot_product back if single mutation affects several proteins
+output_table <- output_table[, .(Prot_product = paste(unique(Prot_product), collapse = ";")),
+              by = .(CHROM, POS, ID, SYMBOL, Indiv, HGVSp, cosmic, cosmic_FATHMM, Consequence, IMPACT)]
+
+output_table <- unique(output_table)
 ```
+
+
+```{r polishing results}
+setnames(output_table, c("Indiv", "SYMBOL", "HGVSp"), c("Sample", "symbol", "AA_mutations"))
+output_table <- unique(output_table)
+
+fwrite(output_table, "all_genes.tsv", sep = "\t")
+
+fwrite(output_table[symbol %in% c("KRAS", "TP53", "SMAD4", "BRCA1", "BRCA2")], "KRAS_TP53_SMAD4_BRAC_genes.tsv", sep = "\t")
+```
+
+
+
+
 
   
 

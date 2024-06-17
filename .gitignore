@@ -58,6 +58,8 @@ rsconnect/
 # Excel files
 *.xlsx
 *.xls
+# Excel lock files
+*.~lock.*.xlss#
 
 # folder with actual exomes
-/exomes_folder/*
+WES_result2table/exomes_folder/*
