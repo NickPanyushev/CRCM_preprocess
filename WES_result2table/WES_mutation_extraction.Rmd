@@ -35,7 +35,7 @@ genes_of_interest <- fread(input = "Panel_TSV8.csv")
 genes_of_interest <- unique(genes_of_interest$`V8 panel`)
 
 filtered_table <- final_table[vapply(final_table$SYMBOL, function(x) any(x %in% genes_of_interest), logical(1))]
-filtered_table <- tidyr::unnest(filtered_table, cols = (SYMBOL))
+filtered_table <- tidyr::unnest(filtered_table, cols = (SYMBOL)) #Check this command if it gives the same result as the separate_rows
 setDT(filtered_table)
 filtered_table <- filtered_table[SYMBOL %in% genes_of_interest]
 

@@ -1,0 +1,300 @@
+---
+title: "Results_Comparison"
+output: html_document
+date: "2024-06-17"
+---
+
+```{r install, echo=FALSE, eval=FALSE}
+install.packages("VennDiagram")
+install.packages("ggvenn")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+setDTthreads(percent = 90)
+library(tidyr)
+library(here)
+library(ggvenn)
+library(DT)
+```
+
+## Data comparison
+
+In this script we analyse the intersection of discovered mutations with in both of the analyses
+
+```{r data_readout}
+my_data <- fread("all_genes.tsv")
+Remy_data <- fread("Remy_Mutations.tsv")
+genes_of_interest <- fread(input = "Panel_TSV8.csv")#this is the gene symbol list with all the interesting genes
+genes_of_interest <- unique(genes_of_interest$`V8 panel`)
+```
+
+And now we'll select only common samples, present in both analyses
+
+```{r common_samples}
+common_samples <- unique(intersect(my_data$Sample, Remy_data$Sample_Name))
+my_data_common <- my_data[Sample %in% common_samples]
+Remy_data_common <- Remy_data[Sample_Name %in% common_samples]
+```
+
+Well, now we see `r length(common_samples)` samples present in the both analyses. Here are they `r toString(common_samples)`.  
+But of special attention - in the latest analysis we do have `r  nrow(my_data_common)` variants in Exome analysis vs `r nrow(Remy_data_common)` variants in Remy's analysis with chip. Almost 10-times difference!
+
+### Genes abundance
+
+```{r 3-partite Venn diagram, echo=FALSE}
+# Example gene symbol sets
+genes1 <- unique(my_data_common$symbol)
+genes2 <- unique(Remy_data_common$Gene.refGene)
+
+
+# Prepare the data in a list
+gene_sets <- list(
+  "Exome analysis" = genes1,
+  "Remy analysis" = genes2, 
+  "Genes of interest" = genes_of_interest
+)
+
+# Create the Venn diagram with custom aesthetics
+venn_plot <- ggvenn(
+  gene_sets, 
+  c("Exome analysis", "Remy analysis", "Genes of interest"),
+  fill_color = c("#F8766D", "#00BFC4", "#F0E442"),
+  #auto_scale = T, 
+  show_percentage = F,
+  stroke_size = 0.5,
+  set_name_size = 4,
+  text_size = 4
+)
+
+# Customize the plot with ggplot2
+venn_plot <- venn_plot + theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    plot.background = element_rect(fill = "white")
+  ) +
+  ggtitle("Venn Diagram of Gene Sets")
+
+print(venn_plot)
+```
+
+From this Venn diagram we can see the differences in the gene number in 2 data analyses. "Genes of interest" set - is the gene symbol list from file "Panel_TSV8.csv"\
+And we can draw 2 major conclusions here:
+
+-   The exome analysis and previous analysis are not directly comparable, because they comprise different gene numbers
+
+-   To compare the mutations we should remove all the gene symbols not included in the Genes of interest
+
+#### Cleaning-up the genes in the Remy's analysis
+
+```{r Genes clean-up}
+Remy_data_goi <- Remy_data_common[Gene.refGene %in% genes_of_interest] 
+```
+
+Well, now we see `r nrow(Remy_data_goi)` mutations in the Remy's analysis. It is even fewer than in my analysis - `r  nrow(my_data_common)`! 
+
+And now let's see how it's look like on the Venn diagram  
+
+```{r 2-part Venn diagram, echo=FALSE}
+
+# Prepare the data in a list
+gene_sets <- list(
+  "Exome analysis" = unique(my_data_common$symbol),
+  "Remy analysis" = unique(Remy_data_goi$Gene.refGene) 
+)
+
+# Create the Venn diagram with custom aesthetics
+venn_plot <- ggvenn(
+  gene_sets, 
+  c("Exome analysis", "Remy analysis"),
+  fill_color = c("#F8766D", "#00BFC4"),
+  auto_scale = T, 
+  show_percentage = T,
+  stroke_size = 0.5,
+  set_name_size = 4,
+  text_size = 4
+)
+
+# Customize the plot with ggplot2
+venn_plot <- venn_plot + theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    plot.background = element_rect(fill = "white")
+  ) +
+  ggtitle("Venn Diagram of Gene Sets")
+print(venn_plot)
+```
+
+#### Gene sets comparison
+
+Lets look at the genes, present in the Exome analysis only
+```{r Exome_only, echo=FALSE}
+common_genes <- unique(intersect(my_data_common$symbol, Remy_data_goi$Gene.refGene))
+print(unique(my_data_common$symbol[!(my_data_common$symbol %in% common_genes)]))
+```
+  
+  
+Common genes
+```{r common_genes, echo=FALSE}
+print(common_genes)
+```
+
+Well we see here the `r length(common_genes)` - and among them - the most important ones - TP53, KRAS, SMAD4, CDKN2A, FGFR1, BRCA2, at least we are not missing VERY important things! 
+
+  
+And genes present only in the Remy's analysis - and NOT detected in exome analysis
+```{r chip_only, echo=FALSE}
+print(unique(Remy_data_goi$Gene.refGene[!(Remy_data_goi$Gene.refGene %in% common_genes)]))
+```
+
+And here we see the gene names we don't have in Exome analysis - in the same cohort of patients. Let's review the list of those genes - their functions and possible implications in cancer. I've made a request in Uniprot.org database and found all of them. So, let's review the results in a table.   
+
+This was the request
+```{r, engine='bash', eval=F}
+#That is the query submitted to UNIPROT
+curl --form 'from="Gene_Name"' \
+     --form 'to="UniProtKB"' \
+     --form 'ids="MORC4,KDM6A,U2AF1,MLLT4,REV1,ATRNL1,SLAMF7,HSPG2,MUTYH,CD248,BUB1B,MSLN,MEN1,PARP1,FLT3,FGFR2"' \
+     --form 'taxId="9606"' \
+     https://rest.uniprot.org/idmapping/run
+```
+
+What we've obtained - let's have a look
+
+```{r reviewing missed genes}
+Remy_only_genes <- fread("Chip_genes_only.tsv")
+Remy_only_genes$`Entry Name` <- NULL # Not needed
+names(Remy_only_genes) <- c("Gene_symbol", "UNIPROT_ID", "Alt_names", "Protein_length", "Protein_names", "Diseases")
+#Cleaning out the things in the "Diseases" column - to make it readable
+Remy_only_genes$Diseases <- gsub("\\{.*?\\}", "", Remy_only_genes$Diseases)
+setDF(Remy_only_genes)
+```
+  
+  
+
+```{r, Remy_only_genes show, echo=FALSE}
+datatable(Remy_only_genes, options = list(pageLength = 20, autoWidth = TRUE), rownames = FALSE)
+```
+
+From this table we see 5 genes ASSOCIATED with cancer - MEN1, BUB1B, FLT3, MLLT4, MUTYH - but none of them associated with PDAC. 
+
+#### Variants review
+
+Let's have a closer look at the mutations we potentially missed in the exome analysis and try to find out what has happened
+```{r MEN1-MUTYH mutations, echo=FALSE}
+datatable(Remy_data_goi[Remy_data_goi$Gene.refGene %in% c("MEN1", "BUB1B", "FLT3", "MLLT4", "MUTYH"), ])
+```
+  
+Well, I can say nothing about these mutations, based on this data. The only thing is it really concerns only these 4 patients `r unique(Remy_data_goi[Remy_data_goi$Gene.refGene %in% c("MEN1", "BUB1B", "FLT3", "MLLT4", "MUTYH"),  Sample_Name])`
+  
+  
+###Variants abundance
+
+Let's review the actual differences in both sets of variations. We'll start with Venn diagrams and then look closer at differences and try to dissect what has happened actually
+
+####Venn diagram
+To build the diagrams we actually need to make the variants ID. 
+```{r Var_ID_creation}
+Remy_data_common$var_ID <- paste("chr", Remy_data_common$Chr, sep = "") #added the prefix chr
+Remy_data_common$var_ID <- paste(Remy_data_common$var_ID, Remy_data_common$Start, Remy_data_common$Gene.refGene, sep = "_" )
+my_data_common$var_ID <- paste(my_data_common$CHROM, my_data_common$POS, my_data_common$symbol, sep = "_" )
+```
+
+Comparison of the set of variants in both analyses, not taking into account the genes of interest
+
+```{r total_variants Venn diagram, echo=FALSE}
+# Prepare the data in a list
+gene_sets <- list(
+  "Exome analysis" = unique(my_data_common$var_ID),
+  "Remy analysis" = unique(Remy_data_common$var_ID) 
+)
+
+# Create the Venn diagram with custom aesthetics
+venn_plot <- ggvenn(
+  gene_sets, 
+  c("Exome analysis", "Remy analysis"),
+  fill_color = c("#F8766D", "#00BFC4"),
+  auto_scale = T, 
+  show_percentage = T,
+  stroke_size = 0.5,
+  set_name_size = 4,
+  text_size = 4
+)
+
+# Customize the plot with ggplot2
+venn_plot <- venn_plot + theme_void() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14),
+    plot.background = element_rect(fill = "white")
+  ) +
+  ggtitle("Venn Diagram of Variants intersections")
+print(venn_plot)
+```
+  
+  
+Well, this is weird. Now I see no point in doing any other comparisons in this setting - because our analyses are clearly incomparable
+
+And the only one variation present in both of the analyses. 
+```{r}
+intersect(my_data_common$var_ID, Remy_data_common$var_ID)
+```
+
+###Investigation
+In this chapter we'll see what has happened with all the variations in the Exome analysis - were they lost/filtered out or something else? 
+
+But this is to be done tomorrow. 
+```{r exome_table_readout, eval=FALSE, echo=FALSE}
+final_table <- readRDS("exomes_folder/final_table.RDS") #prefer this method
+#Creating 2 test tables to test 2 approaches - the unnest and separate_rows
+test_table_unnest <- test_table_sep_rows <- final_table[sample(.N, 100000)]
+all.equal(test_table_unnest, test_table_sep_rows) #Check for the equality
+
+#Testing unnest approach
+test_table_unnest$SYMBOL <- vapply(test_table_unnest$SYMBOL, function(x) strsplit(as.character(x), ","), FUN.VALUE = list(character(1)))
+test_table_unnest <- test_table_unnest[vapply(test_table_unnest$SYMBOL, function(x) any(x %in% genes_of_interest), logical(1))]
+test_table_unnest <- tidyr::unnest(test_table_unnest, cols = (SYMBOL))
+setDT(test_table_unnest)
+test_table_unnest <- test_table_unnest[SYMBOL %in% genes_of_interest]
+
+
+#Testing separate_rows approach
+test_table_sep_rows <- tidyr::separate_longer_delim(test_table_sep_rows, cols = (SYMBOL), delim = "," )
+setDT(test_table_sep_rows)
+test_table_sep_rows <- test_table_sep_rows[SYMBOL %in% genes_of_interest]
+
+all.equal(test_table_unnest, test_table_sep_rows) #Check for the equality
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
