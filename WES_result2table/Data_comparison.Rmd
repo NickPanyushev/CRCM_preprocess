@@ -240,35 +240,127 @@ And the only one variation present in both of the analyses.
 intersect(my_data_common$var_ID, Remy_data_common$var_ID)
 ```
 
-###Investigation
-In this chapter we'll see what has happened with all the variations in the Exome analysis - were they lost/filtered out or something else? 
+  
+  
+Nico says that it is the problem in references - that's why the chromosome locations don't match, and as the consequence - the IDs don't match
 
-But this is to be done tomorrow. 
-```{r exome_table_readout, eval=FALSE, echo=FALSE}
-final_table <- readRDS("exomes_folder/final_table.RDS") #prefer this method
-#Creating 2 test tables to test 2 approaches - the unnest and separate_rows
-test_table_unnest <- test_table_sep_rows <- final_table[sample(.N, 100000)]
-all.equal(test_table_unnest, test_table_sep_rows) #Check for the equality
+###Protein level mutations only
 
-#Testing unnest approach
-test_table_unnest$SYMBOL <- vapply(test_table_unnest$SYMBOL, function(x) strsplit(as.character(x), ","), FUN.VALUE = list(character(1)))
-test_table_unnest <- test_table_unnest[vapply(test_table_unnest$SYMBOL, function(x) any(x %in% genes_of_interest), logical(1))]
-test_table_unnest <- tidyr::unnest(test_table_unnest, cols = (SYMBOL))
-setDT(test_table_unnest)
-test_table_unnest <- test_table_unnest[SYMBOL %in% genes_of_interest]
+In this chunk I'll do the same intersections, but creating IDs in the format like KRAS_GLY12VAL to leverage the references mismatches. 
 
+```{r prot_mut_Remy_table}
+#First, with Remy's data -only with genes of interest, we don't bother with others anymore
+Remy_goi_mut_table <- Remy_data_goi[, .(Sample_Name, Gene.refGene, GeneDetail.refGene, AAChange.refGene)]
+#Parse out the AAchanges fields
+Remy_goi_mut_table <- tidyr::separate_longer_delim(Remy_goi_mut_table, cols = "AAChange.refGene", delim = ",")
+Remy_goi_mut_table$AAChange.refGene <- sub(".*:p\\.", "", Remy_goi_mut_table$AAChange.refGene)
+Remy_goi_mut_table$AAChange.refGene <- sub(".*(wholegene)", "\\1", Remy_goi_mut_table$AAChange.refGene)
+Remy_goi_mut_table <- unique(Remy_goi_mut_table)
 
-#Testing separate_rows approach
-test_table_sep_rows <- tidyr::separate_longer_delim(test_table_sep_rows, cols = (SYMBOL), delim = "," )
-setDT(test_table_sep_rows)
-test_table_sep_rows <- test_table_sep_rows[SYMBOL %in% genes_of_interest]
+#Parsing now the field with nucleotide changes
+Remy_goi_mut_table <- tidyr::separate_longer_delim(Remy_goi_mut_table, cols = "GeneDetail.refGene", delim = ",")
+Remy_goi_mut_table$GeneDetail.refGene <- sub("NM_.*:", "", Remy_goi_mut_table$GeneDetail.refGene)
+Remy_goi_mut_table$GeneDetail.refGene <- paste("splicing:", Remy_goi_mut_table$GeneDetail.refGene, sep = "")
+setDT(Remy_goi_mut_table)
+Remy_goi_mut_table[AAChange.refGene == ".", AAChange.refGene := GeneDetail.refGene]
+Remy_goi_mut_table$GeneDetail.refGene <- NULL
+Remy_goi_mut_table <- unique(Remy_goi_mut_table)
 
-all.equal(test_table_unnest, test_table_sep_rows) #Check for the equality
-
-
+#Collapsing mutatons into one line
+Remy_goi_mut_table[, Remy_Mutations := paste(AAChange.refGene, collapse = "; "), by = .(Gene.refGene, Sample_Name)]
+Remy_goi_mut_table <- Remy_goi_mut_table[, .(Sample_Name, Gene.refGene, Remy_Mutations)]
+#Renaming columns 
+setnames(Remy_goi_mut_table, old = c("Sample_Name", "Gene.refGene"), new = c("Sample", "Gene_symbol"))
+Remy_goi_mut_table <- Remy_goi_mut_table[, .(Sample, Gene_symbol, Remy_Mutations)]
+```
+  
+  
+Let's have a look what we've got. 
+```{r, echo=FALSE}
+setDF(Remy_goi_mut_table)
+datatable(Remy_goi_mut_table)
 ```
 
+And let's parse out my table from Exome analysis
 
+```{r prot_mut_Exome_table}
+Exome_data_goi_mut_table <- my_data_common[, .(symbol, Sample, Consequence, AA_mutations)]
+Exome_data_goi_mut_table <- unique(Exome_data_goi_mut_table)
+```
+
+```{r 3-letter to 1-letter conversion}
+# This function was made thanks to chatGPT
+
+
+# Define the conversion function
+
+convert_mutation <- function(mutation) {
+  
+  # Create a look up table for amino acid codes
+  amino_acid_lookup <- c(
+  Ala = "A", Arg = "R", Asn = "N", Asp = "D", Cys = "C",
+  Gln = "Q", Glu = "E", Gly = "G", His = "H", Ile = "I",
+  Leu = "L", Lys = "K", Met = "M", Phe = "F", Pro = "P",
+  Ser = "S", Thr = "T", Trp = "W", Tyr = "Y", Val = "V",
+  Ter = "*")
+  
+  # Define patterns for different mutation types
+  standard_pattern <- "([A-Za-z]{3})([0-9]+)([A-Za-z]{3})"
+  frameshift_pattern <- "([A-Za-z]{3})([0-9]+)([A-Za-z]{3})fsTer([0-9]+)"
+  
+  # Match against frameshift pattern first
+  frameshift_matches <- regmatches(mutation, regexec(frameshift_pattern, mutation))[[1]]
+  
+  if (length(frameshift_matches) > 0) {
+    original_aa <- amino_acid_lookup[frameshift_matches[2]]
+    position <- frameshift_matches[3]
+    new_aa <- amino_acid_lookup[frameshift_matches[4]]
+    fs_position <- frameshift_matches[5]
+    converted_mutation <- paste0(original_aa, position, new_aa, "fs*", fs_position)
+    return(converted_mutation)
+  }
+  
+  # Match against standard pattern
+  standard_matches <- regmatches(mutation, regexec(standard_pattern, mutation))[[1]]
+  
+  if (length(standard_matches) > 0) {
+    original_aa <- amino_acid_lookup[standard_matches[2]]
+    position <- standard_matches[3]
+    new_aa <- amino_acid_lookup[standard_matches[4]]
+    converted_mutation <- paste0(original_aa, position, new_aa)
+    return(converted_mutation)
+  }
+  
+  return(NA)
+}
+
+Exome_data_goi_mut_table$AA_mut_1_letter <- sapply(Exome_data_goi_mut_table$AA_mutations, convert_mutation)
+```
+
+```{r}
+Exome_data_goi_mut_table[AA_mutations == ".", AA_mut_1_letter := Consequence]
+Exome_data_goi_mut_table <- Exome_data_goi_mut_table[, .(symbol, Sample, AA_mut_1_letter)]
+Exome_data_goi_mut_table <- unique(Exome_data_goi_mut_table)
+Exome_data_goi_mut_table[, Exome_Mutations := paste(AA_mut_1_letter, collapse = "; "), by = .(symbol, Sample)]
+Exome_data_goi_mut_table <- unique(Exome_data_goi_mut_table[, .(symbol, Sample, Exome_Mutations)])
+setnames(Exome_data_goi_mut_table, old = "symbol", new = "Gene_symbol")
+```
+
+```{r merging_Remy_and_my_results}
+comparison_table <- merge(Exome_data_goi_mut_table, Remy_goi_mut_table)
+comparison_table <- unique(comparison_table)
+```
+
+Ok, Nelson is happy now. So, for now, I'll export this to excel and separate patient mark it by hands
+
+```{r data export}
+fwrite(comparison_table, "Comparison_table.tsv", sep = "\t")
+```
+
+####Comparison in numbers
+```{r mut number comparison}
+
+```
 
 
 
