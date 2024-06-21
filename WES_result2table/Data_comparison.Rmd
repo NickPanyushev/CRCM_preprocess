@@ -271,14 +271,14 @@ Remy_goi_mut_table[, Remy_Mutations := paste(AAChange.refGene, collapse = "; "),
 Remy_goi_mut_table <- Remy_goi_mut_table[, .(Sample_Name, Gene.refGene, Remy_Mutations)]
 #Renaming columns 
 setnames(Remy_goi_mut_table, old = c("Sample_Name", "Gene.refGene"), new = c("Sample", "Gene_symbol"))
-Remy_goi_mut_table <- Remy_goi_mut_table[, .(Sample, Gene_symbol, Remy_Mutations)]
+Remy_for_merge <- Remy_goi_mut_table[, .(Sample, Gene_symbol, Remy_Mutations)]
 ```
   
   
 Let's have a look what we've got. 
 ```{r, echo=FALSE}
-setDF(Remy_goi_mut_table)
-datatable(Remy_goi_mut_table)
+setDF(Remy_for_merge)
+datatable(Remy_for_merge)
 ```
 
 And let's parse out my table from Exome analysis
@@ -339,15 +339,15 @@ Exome_data_goi_mut_table$AA_mut_1_letter <- sapply(Exome_data_goi_mut_table$AA_m
 
 ```{r}
 Exome_data_goi_mut_table[AA_mutations == ".", AA_mut_1_letter := Consequence]
-Exome_data_goi_mut_table <- Exome_data_goi_mut_table[, .(symbol, Sample, AA_mut_1_letter)]
-Exome_data_goi_mut_table <- unique(Exome_data_goi_mut_table)
-Exome_data_goi_mut_table[, Exome_Mutations := paste(AA_mut_1_letter, collapse = "; "), by = .(symbol, Sample)]
-Exome_data_goi_mut_table <- unique(Exome_data_goi_mut_table[, .(symbol, Sample, Exome_Mutations)])
 setnames(Exome_data_goi_mut_table, old = "symbol", new = "Gene_symbol")
+Exome_for_merge <- Exome_data_goi_mut_table[, .(Gene_symbol, Sample, AA_mut_1_letter)]
+Exome_for_merge <- unique(Exome_for_merge)
+Exome_for_merge[, Exome_Mutations := paste(AA_mut_1_letter, collapse = "; "), by = .(Gene_symbol, Sample)]
+Exome_for_merge <- unique(Exome_for_merge[, .(Gene_symbol, Sample, Exome_Mutations)])
 ```
 
 ```{r merging_Remy_and_my_results}
-comparison_table <- merge(Exome_data_goi_mut_table, Remy_goi_mut_table)
+comparison_table <- merge(Exome_for_merge, Remy_for_merge)
 comparison_table <- unique(comparison_table)
 ```
 
@@ -358,10 +358,28 @@ fwrite(comparison_table, "Comparison_table.tsv", sep = "\t")
 ```
 
 ####Comparison in numbers
+
+Here we would like to create a table of coincident mutations per patient, like this: 
+| Sample | Percentage | total number | Exome_only | Chip_only | common_muts  
+
 ```{r mut number comparison}
+num_comparison <- comparison_table
+num_comparison[, Exome_Mutations := lapply(Exome_Mutations, function(x) strsplit(x, ";")[[1]])]
+num_comparison[, Remy_Mutations := lapply(Remy_Mutations, function(x) strsplit(x, ";")[[1]])]
+num_comparison[, total_number := length(union(unlist(Exome_Mutations), unlist(Remy_Mutations))), by = Sample]
+num_comparison[, common_muts := paste(intersect(unlist(Exome_Mutations), unlist(Remy_Mutations)), collapse = "; "), by = Sample]
 
+#Calculating the percentage of the common genes
+num_comparison[, percentage := length(intersect(unlist(Exome_Mutations), unlist(Remy_Mutations))), by = Sample]
+num_comparison$percentage <- round(num_comparison$percentage / num_comparison$total_number*100, digits = 1)
+
+num_comparison[, Chip_only := paste(setdiff(unlist(Remy_Mutations), unlist(Exome_Mutations)), collapse = "; "), by = Sample]
+num_comparison[, Exome_only := paste(setdiff(unlist(Exome_Mutations), unlist(Remy_Mutations)), collapse = "; "), by = Sample]
+
+#I can add some information to that, but I guess, it is good enough to use
+
+fwrite(num_comparison, "numeric_comparison_ChipvsExome.tsv")
 ```
-
 
 
 
