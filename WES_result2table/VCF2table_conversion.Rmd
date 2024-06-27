@@ -1,22 +1,17 @@
 #Converting funny WES format to table
 ## Point of this script - to develop a pipeline for converting WES results acrchives to tables
-```{r installing_packages, echo=F, results='hide', eval=FALSE}
+```{r installing_packages, echo=T, results='hide', eval=FALSE}
 install.packages("data.table")
 install.packages("zip")
 install.packages("here")
 install.packages("vcfR")
 ```
 
-```{r loading_packages, echo=F, results='hide'}
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
 library(data.table)
 setDTthreads(percent = 90)
 library(zip)
 library(vcfR)
-```
-
-Basically we need only to extract only oncology variants
-For that, we'll run the samples over by a script - taking 
-```{r archive readout}
 library(here)
 ```
 
@@ -40,9 +35,9 @@ get_vcf <- function(archive_name, extract_folder = ".", extensions = ".vcf.gz"){
 ```
 
 Now let's do that for several files
-```{r collecting vcfs}
+```{r collecting vcfs, results='hide', message=FALSE}
 #collected file names of the archives
-PDAC_results <- dir(path="/home/nikolai/PDX_Exome_results/",
+PDAC_results <- dir(path="/mnt/sda1/Exomes_June2024",
                     pattern = "^PDAC.*T\\.zip$",
                     full.names = TRUE)
 
@@ -51,7 +46,8 @@ invisible(sapply(PDAC_results, get_vcf, extract_folder = "./exomes_folder"))
 ```
 
 This is task-specific chunk, we do not need germline variants in this exact study, so we can delete those files
-```{r removing genetic variants vcfs}
+NB! We could be not interested in running it every time, so I've put eval=f
+```{r removing genetic variants vcfs, eval=FALSE}
 #removing unused vcfs, which we are not interested in
 system("rm ./exomes_folder/*_Genetic_Variants.*")
 ```
@@ -60,10 +56,18 @@ system("rm ./exomes_folder/*_Genetic_Variants.*")
 cd exomes_folder
 for i in *.vcf.gz
 do
-  TAG=${i%-N_*}".vcf.gz"
+  # Extract the first three consecutive digits found in the filename
+  num=$(echo "$i" | grep -oP '\d{3}' | head -n 1)
+  
+  # Construct the new filename
+  TAG="PDAC${num}T.vcf.gz"
+  
+  # Rename the file
   mv $i $TAG
 done
 ```
+
+This chunk will reheader samples, split vep field and save them as the vcf files 
 
 ```{r reheader_split, engine='bash', eval=T}
 cd exomes_folder
@@ -72,19 +76,66 @@ do
   TAG=${i%.vcf.gz}
   echo $TAG"_TUMOR" > $TAG"_new_names".txt
   echo $TAG"_NORMAL" >> $TAG"_new_names".txt
-  bcftools reheader -s $TAG"_new_names".txt $i | bcftools +split-vep -a ANN -c - -Oz -o ${TAG}_VEP_split.vcf.gz -
+  bcftools reheader -s $TAG"_new_names".txt $i | bcftools +split-vep -a ANN -c - -o ${TAG}_VEP_split.vcf
   rm $i $TAG"_new_names".txt
 done
 echo "Success"
 ```
 
+This chunk converts vcf files to maf ones and then merges them all to one and compresses it. 
+This file will be used later for the oncoplots
+
+Prerequisite - to have vcf2maf.pl installed
+NB! This is one-time run script, therefore it is not run - eval=F! 
+```{r creating and merging maf files, engine='bash', eval=F}
+cd exomes_folder
+for i in *.vcf
+do
+  TAG=${i%_VEP_split.vcf}
+  /opt/mskcc-vcf2maf-f6d0c40/vcf2maf.pl --input-vcf $i --inhibit-vep \
+  --tumor-id $TAG"_TUMOR" --normal-id $TAG"_NORMAL" \
+  --vcf-tumor-id $TAG"_TUMOR" --vcf-normal-id $TAG"_NORMAL" \
+  --output-maf ../temp_folder/$TAG.maf --ref-fasta ~/References/GRCh38.p13.genome.fa.gz
+done
+echo "Success"
+```
+
+Merging and archiving maf files
+NB! This is one-time run script, therefore it is not run - eval=F! 
+```{r merging maf files, engine='bash', eval=F}
+cd temp_folder
+output_file="concatenated_maf_file.maf"
+
+# Initialize the output file by copying the header from the first MAF file
+FIRST_FILE=true
+
+for maf_file in *.maf
+do
+  if $FIRST_FILE; then
+    # Copy the header and content of the first MAF file
+    cat "$maf_file" > "$output_file"
+    FIRST_FILE=false
+  else
+    # Skip the header (first line) of subsequent MAF files and append the content
+    tail -n +2 "$maf_file" >> "$output_file"
+  fi
+done
+
+echo "MAF files concatenated into $output_file"
+
+bgzip $output_file
+mv $output_file.gz ../exomes_folder
+rm *
+```
+
+
 This chunk reads vcfs as tables with vcfR 
 This chink runs for about an hour for the ~70 vcf files
 ```{r merging vcf2tables, eval=FALSE}
-vcfs <-  dir(path = "./exomes_folder/", pattern = "*.vcf.gz", full.names = T)
+vcfs <-  dir(path = "./exomes_folder/", pattern = "*.vcf", full.names = T)
 
 #Producing the table for reference of field names
-vcf <- read.vcfR("exomes_folder/PDAC_JIA_HS_003N_VEP_split.vcf.gz")
+vcf <- read.vcfR("exomes_folder/PDAC_JIA_HS_003N_VEP_split.vcf")
 reference_table <- vcfR2tidy(vcf, single_frame = T)$meta 
 rm(vcf)
 

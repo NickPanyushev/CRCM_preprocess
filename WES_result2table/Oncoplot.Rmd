@@ -1,0 +1,72 @@
+---
+title: "Oncoplot creation"
+output: html_document
+date: "2024-06-21"
+---
+
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+library(here)
+library(data.table)
+library(ggplot2)
+#BiocManager::install("maftools")
+library(maftools)
+```
+
+##Test oncoplot from the maftools package
+
+```{r data_readout}
+maf_data <- read.maf(maf = "exomes_folder/concatenated_maf_file.maf.gz")
+maf_data@data$Tumor_Sample_Barcode <- sub("_TUMOR", "", maf_data@data$Tumor_Sample_Barcode)
+
+genes_of_interest <- fread(input = "Panel_TSV8.csv")
+genes_of_interest <- unique(genes_of_interest$`V8 panel`)
+
+#This assignment is a dirty hack due to bug in the oncoplot functions
+cohort_size <- length(unique(filtered_maf_data@data$Tumor_Sample_Barcode))
+
+```
+
+
+```{r oncoplot_main_genes}
+# Oncoplot
+oncoplot(maf = maf_data, top = 20, showTumorSampleBarcodes = TRUE, removeNonMutated = TRUE, genes = c("TP53", "KRAS", "EGFR", "SMAD4", "BRCA2"), cohortSize = cohort_size, legend_height = 3, SampleNamefontSize = 0.7, legendFontSize = 1, sepwd_samples = 0.7, fontSize = 0.7)
+```
+```{r saving as png}
+png(filename = "KRAS_TP53_BRCA2_SMAD4.png", width = 1500, height = 1200, res = 300)
+
+# Generate the oncoplot
+
+oncoplot(maf = maf_data, top = 20, showTumorSampleBarcodes = TRUE, removeNonMutated = TRUE, genes = c("TP53", "KRAS", "EGFR", "SMAD4", "BRCA2"), cohortSize = cohort_size, legend_height = 4, SampleNamefontSize = 0.3, legendFontSize = 1, sepwd_samples = 0.9, fontSize = 0.5)
+
+# Close the PNG device
+dev.off()
+```
+
+
+```{r oncoplot_genes_of_interest}
+available_genes <- unique(maf_data@data$Hugo_Symbol)
+present_genes <- intersect(available_genes, genes_of_interest)
+missing_genes <- genes_of_interest[!(genes_of_interest %in% available_genes)]
+filtered_maf_data <- subsetMaf(maf = maf_data, genes = present_genes)
+
+oncoplot(maf = filtered_maf_data, top = 20, showTumorSampleBarcodes = TRUE, removeNonMutated = TRUE, cohortSize = cohort_size, 
+         legend_height = 3, SampleNamefontSize = 0.8, legendFontSize = 1, sepwd_samples = 0.9, fontSize = 0.7, barcodeSrt = 90)
+```
+```{r saving as png}
+png(filename = "oncoplot_genes_of_interest.png", width = 1500, height = 1200, res = 300)
+
+# Generate the oncoplot
+
+oncoplot(maf = filtered_maf_data, top = 20, showTumorSampleBarcodes = TRUE, removeNonMutated = TRUE, cohortSize = cohort_size, 
+         legend_height = 4, SampleNamefontSize = 0.3, legendFontSize = 1, sepwd_samples = 0.9, fontSize = 0.5, barcodeSrt = 90)
+
+# Close the PNG device
+dev.off()
+```
+```{r lollipop KRAS}
+png(filename = "KRAS_lollipop.png", width = 1500, height = 1000, res = 300)
+lollipopPlot(maf_data, gene = "KRAS", labelPos = "all", showDomainLabel = F)
+dev.off()
+```
+
+
